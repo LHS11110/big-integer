@@ -68,11 +68,17 @@ std::string Integer::to_string() const {
         std::string part = std::to_string(*it);
         if (it != array.rbegin()) {
             // 각 부분을 16자리로 맞추기 위해 앞에 0을 추가
-            part = std::string(16 - part.length(), '0') + part;
+            if (part.length() < 16) {
+                part = std::string(16 - part.length(), '0') + part;
+            }
         }
         str += part;
     }
     // 불필요한 0 제거
-    str.erase(0, str.find_first_not_of('0'));
+    size_t non_zero_idx = str.find_first_not_of('0');
+    if (non_zero_idx == std::string::npos) {
+        return "0";
+    }
+    str.erase(0, non_zero_idx);
     return is_negative ? "-" + str : str;
 }
