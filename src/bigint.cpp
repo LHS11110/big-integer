@@ -72,8 +72,7 @@ Integer Integer::minus(const Integer& other) const {
     result.array.resize(len, MASK2);
     for (uint64_t i = 0; i < other.array.size(); i++) // O(n)의 시간 복잡도로 비트 반전 수행
         result.array[i] = ~other.array[i]; // NOT other.array[i]
-    result.plus_(1, true); // 1을 더하여 2의 보수로 변환
-    result.plus_(*this, true); // this - other
+    result.plus_(1, true).plus_(*this, true); // 1을 더하여 2의 보수로 변환 후 덧셈 연산
     if (result.array.back() & MASK) { // 음수라면 이를 다시 양수로 바꾸기 위해
         for (uint64_t i = 0; i < len; i++) // O(n)의 시간 복잡도로 비트 반전 수행
             result.array[i] = ~result.array[i]; // NOT result.array[i]
