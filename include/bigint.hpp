@@ -6,6 +6,8 @@ private:
   bool is_negative;
   std::vector<uint64_t> array;
 
+  Integer& plus_(const Integer&, bool ignore_carry = false);
+
 public:
   Integer();
   Integer(const uint64_t);
@@ -19,7 +21,7 @@ public:
    * @return Integer 부호에 관계없이 산술 덧셈 결과가 담긴 새로운 Integer 객체
    * @note 시간 복잡도: O(n) (n은 비트의 길이)
    */
-  Integer plus(const Integer&) const;
+  Integer plus(const Integer&, bool ignore_carry = false) const;
 
   /**
    * @brief 부호에 관계없이 산술 뺄셈은 수행합니다.
@@ -42,7 +44,7 @@ public:
    */
   Integer operator~() const;
 
-  std::string to_string() const;
+  void print() const;
 
   /**
    * @brief 산술 덧셈합니다.
