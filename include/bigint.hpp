@@ -44,7 +44,14 @@ public:
    */
   Integer operator~() const;
 
-  void print() const;
+  /**
+   *  @brief left-bit-shift 연산을 수행합니다.
+   * 
+   * @param shift left-shift할 횟수 
+   * @return lshift가 수행된 새로운 Integer 객체
+   * @note 시간 복잡도 : O(n) (n은 비트의 길이)
+   */
+  Integer operator<<(uint64_t shift) const;
 
   /**
    * @brief 산술 덧셈합니다.

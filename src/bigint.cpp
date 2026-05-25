@@ -92,10 +92,26 @@ Integer Integer::operator~() const {
     return result;
 }
 
-void Integer::print() const {
-    if (is_negative)
-        std::cout << "-";
-    for (size_t i = array.size(); i > 0; i--)
-        std::cout << array[i - 1] << " ";
-    std::cout << std::dec << std::endl;
+Integer Integer::operator<<(u_int64_t c) const {
+    const u_int64_t r = c >> 6; // c / 64
+    const int64_t q = c & 0x3FULL; // c % 64
+    // c = 64r + q
+    Integer result;
+    result.array.resize(array.size() + r, 0);
+    for (int64_t i = r; i < result.array.size(); i++) // this << r
+        result.array[i] = array[i - r];
+    if (q == 0)
+        return result;
+    // 63 >= q >= 1 <=> 62 >= q - 1 >= 0
+    const u_int64_t mask = (~(MASK >> (q - 1)) + 1); // 비트 마스크
+    const u_int32_t shift = 64 - q;
+    if (result.array.back() & mask) // 시프트 연산으로 인해 범위를 벗어나는 비트가 있는 경우
+        result.array.push_back(0);
+    for (int64_t i = result.array.size() - 1; i > 0; i--) {
+        result.array[i] <<= q;
+        result.array[i] += (array[i - 1] & mask) >> shift;
+    }
+
+    result.array[0] <<= q;
+    return result;
 }
