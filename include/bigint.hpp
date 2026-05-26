@@ -18,6 +18,7 @@ public:
   Integer(const std::vector<uint64_t>&);
   Integer(const Integer&, const bool b = false);
   Integer(Integer&&);
+  Integer(Integer&&, const bool);
 
   /**
    * @brief 부호를 바꿉니다. 단, 이 함수는 전달받은 객체의 상태를 변경시킵니다.
@@ -26,7 +27,7 @@ public:
    * @note 시간 복잡도 : O(1)
    */
   static Integer& negate(Integer &n) noexcept;
-  static Integer negate(const Integer &&n) noexcept;
+  static Integer negate(Integer &&n) noexcept;
 
   /**
    * @brief 부호에 관계없이 산술 덧셈은 수행합니다.

@@ -146,13 +146,16 @@ Integer::Integer(const Integer &other, const bool b)
 Integer::Integer(Integer &&other)
     : is_negative(other.is_negative), array(std::move(other.array)) {}
 
+Integer::Integer(Integer &&other, const bool b)
+    : is_negative(b), array(std::move(other.array)) {}
+
 Integer &Integer::negate(Integer &n) noexcept {
   n.is_negative = !n.is_negative;
   return n;
 }
 
-Integer Integer::negate(const Integer &&n) noexcept {
-  return Integer(n, !n.is_negative);
+Integer Integer::negate(Integer &&n) noexcept {
+  return Integer(std::move(n), !n.is_negative);
 }
 
 Integer Integer::plus(const Integer &other, const bool ignore_carry) const {
@@ -180,7 +183,7 @@ Integer Integer::plus(const Integer &other, const bool ignore_carry) const {
   if (carry && !ignore_carry)
     result.array.push_back(1);
 
-  return result;
+  return std::move(result);
 }
 
 Integer Integer::minus(const Integer &other) const {
@@ -202,7 +205,7 @@ Integer Integer::minus(const Integer &other) const {
   while (result.array.size() > 1 &&
          result.array.back() == 0) // 최상위 8바이트가 0이면 제거하여 공간 절약
     result.array.pop_back();
-  return result;
+  return std::move(result);
 }
 
 Integer Integer::operator-() const { return Integer(*this, !is_negative); }
@@ -212,7 +215,7 @@ Integer Integer::operator~() const {
   result.array.resize(array.size(), 0);
   for (size_t i = 0; i < array.size(); i++)
     result.array[i] = ~array[i];
-  return result;
+  return std::move(result);
 }
 
 Integer Integer::operator<<(const uint64_t c) const {
@@ -240,7 +243,7 @@ Integer Integer::operator<<(const uint64_t c) const {
   }
 
   result.array[0] <<= q;
-  return result;
+  return std::move(result);
 }
 
 Integer Integer::operator+(const Integer &other) const {
