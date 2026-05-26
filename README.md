@@ -139,9 +139,8 @@ g++ -std=c++17 -Iinclude main.cpp -L. -lbigint -o my_app
 | `plus(const Integer&)` | $\mathcal{O}(N)$ | 두 수의 산술 합을 올바르게 누적 계산합니다. 단어 간 캐리(Carry) 발생 시 자동으로 자릿수를 확장합니다. |
 | `minus(const Integer&)` | $\mathcal{O}(N)$ | 2의 보수법(2's Complement)을 활용하여 내부적으로 보수 계산 후 가산 연산을 수행해 차(Difference)를 구합니다. |
 | `operator~()` | $\mathcal{O}(N)$ | 모든 단어의 비트를 NOT 연산하여 반전시킵니다. |
-| `to_string()` | $\mathcal{O}(N)$ | 대용량 정수를 10진수 문자열로 포맷팅하여 반환합니다. 단어 경계에서의 자릿수 유실을 막기 위해 16자리 패딩 기능을 포함합니다. |
 
-*여기서 $N$은 정수를 구성하는 64비트 단어(Word)의 갯수입니다.*
+*여기서 N은 정수를 구성하는 64비트 단어(Word)의 갯수입니다.*
 
 ---
 
