@@ -285,7 +285,7 @@ Integer Integer::operator>>(const uint64_t c) const {
     const int64_t q = c & 0x3FULL; // c % 64
     if (array.size() <= r)
         return std::move(Integer());
-    Integer result;
+    Integer result(0, is_negative);
     result.array.resize(array.size() - r, 0);
     for (size_t i = 0; i < result.array.size(); i++)
         result.array[i] = array[i + r];
@@ -298,7 +298,7 @@ Integer Integer::operator>>(const uint64_t c) const {
         result.array[i] |= result.array[i + 1] << shift;
     }
     result.array.back() >>= q;
-    while (result.array.size() > 1 && result.array.back())
+    while (result.array.size() > 1 && result.array.back() == 0)
         result.array.pop_back();
     return std::move(result);
 }
@@ -309,6 +309,10 @@ Integer& Integer::operator<<=(const uint64_t c) {
     array.resize(array.size() + r, 0);
     for (size_t i = array.size(); i > r; i--)
         array[i - 1] = array[i - r - 1];
+    for (size_t i = 0; i < r; i++)
+        array[i] = 0;
+    if (q == 0)
+        return *this;
     const uint64_t mask = (~(MASK >> (q - 1)) + 1); // 비트 마스크
     const uint32_t shift = 64 - q;
     if (array.back() & mask) // 시프트 연산으로 인해 범위를 벗어나는 비트가 있는 경우
@@ -453,6 +457,8 @@ Integer& Integer::operator=(Integer&& other) {
 }
 
 std::string Integer::to_string(void) const {
+    if (is_zero())
+        return {48};
     // https://en.wikipedia.org/wiki/Double_dabble 참고
     Integer result(0);
     uint64_t mask = 0;
@@ -477,7 +483,7 @@ std::string Integer::to_string(void) const {
             result <<= 1;
         }
     }
-    
+
     std::string str_result;
 
     if (!is_zero() && is_negative)
