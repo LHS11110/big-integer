@@ -254,9 +254,6 @@ class TestBigIntPublicAPI(unittest.TestCase):
                     num = -val if is_neg else val
                     sign, words = to_words_str(num)
                     
-                    # C++ right shift for negative represents absolute value rshift with sign preserved
-                    # 즉 C++의 >> 연산은 부호를 그대로 유지한 채 절댓값(array)에 대한 >> 연산을 수행한다.
-                    # 따라서 파이썬의 abs(num) >> shift에 원래 부호를 입혀 예상 결과 계산
                     abs_shifted = abs(num) >> shift
                     expected = -abs_shifted if is_neg else abs_shifted
                     
@@ -372,6 +369,104 @@ class TestBigIntPublicAPI(unittest.TestCase):
             # operator<< (ostream output)
             out_ostream = run_cpp("ostream_out", sign, words)
             self.assertEqual(out_ostream, str(num), f"ostream output failed for {num}")
+
+    # ======================================================================
+    # EXTRA EXTREME EDGE CASES AND STRESS TESTS
+    # ======================================================================
+
+    def test_extreme_large_string_and_to_string(self):
+        # 스트레스 테스트: 100자리, 200자리, 300자리의 거대 문자열 파싱 및 to_string 역복원성 검증
+        for length in [100, 200, 300]:
+            for is_neg in [False, True]:
+                # 무작위 초대형 정수 생성 (앞자리는 0이 아니도록 처리)
+                digits = [str(random.randint(1, 9))] + [str(random.randint(0, 9)) for _ in range(length - 1)]
+                str_val = "".join(digits)
+                if is_neg:
+                    str_val = "-" + str_val
+                
+                # C++ 문자열 생성자로 인스턴스를 빌드한 후 내부 상태 체크
+                out_struct = run_cpp("construct_string", str_val)
+                expected_int = int(str_val)
+                self.assertEqual(parse_cpp_output(out_struct), expected_int, f"Failed parsing extreme large string of length {length}")
+                
+                # C++의 to_string()을 통해 반환된 문자열이 원본과 정확히 일치하는지 검증
+                # Double Dabble 알고리즘의 극한 자릿수 안정성 확인
+                sign, words = to_words_str(expected_int)
+                out_str = run_cpp("to_string", sign, words)
+                self.assertEqual(out_str, str_val, f"Failed to_string reconstruction for extreme large number of length {length}")
+
+    def test_extreme_shifts_and_normalization(self):
+        # 시프트 대입 및 비대입 연산자들의 대량 시프트(Boundary, pop_back) 검증
+        # 1. 256, 512, 1024비트의 극한의 쉬프트 테스트
+        a = 0xDEADC0DEBAADF00D1234567890ABCDEF
+        shifts = [256, 512, 1024]
+        for shift in shifts:
+            for is_neg in [False, True]:
+                num = -a if is_neg else a
+                sign, words = to_words_str(num)
+                
+                # << 및 <<=
+                out = run_cpp("operator_lshift", sign, words, shift)
+                self.assertEqual(parse_cpp_output(out), num << shift, f"Failed extreme lshift: {num} << {shift}")
+                
+                out_assign = run_cpp("operator_lshift_assign", sign, words, shift)
+                self.assertEqual(parse_cpp_output(out_assign), num << shift, f"Failed extreme lshift_assign: {num} <<= {shift}")
+                
+                # >> 및 >>=
+                abs_shifted = abs(num) >> shift
+                expected = -abs_shifted if is_neg else abs_shifted
+                
+                out_r = run_cpp("operator_rshift", sign, words, shift)
+                self.assertEqual(parse_cpp_output(out_r), expected, f"Failed extreme rshift: {num} >> {shift}")
+                
+                out_r_assign = run_cpp("operator_rshift_assign", sign, words, shift)
+                self.assertEqual(parse_cpp_output(out_r_assign), expected, f"Failed extreme rshift_assign: {num} >>= {shift}")
+
+        # 2. 아주 작은 수에 대해 과도하게 큰 우측 시프트(>>=)를 적용해 0으로의 수렴 및 pop_back이 터지지 않는지 확인
+        b = 123456
+        for shift in [32, 64, 128]:
+            for is_neg in [False, True]:
+                num = -b if is_neg else b
+                sign, words = to_words_str(num)
+                out = run_cpp("operator_rshift_assign", sign, words, shift)
+                # 절대치가 모두 수렴하여 0이 되고, 부호는 양수로 초기화되거나 음수 0이 정상 리셋되어 0이 되는지 확인
+                self.assertEqual(parse_cpp_output(out), 0, f"Failed rshift-to-zero convergence: {num} >>= {shift}")
+
+    def test_signed_arithmetic_combinations(self):
+        # 사칙연산의 연속 부호 조합 시 is_negative 부호 유지 및 누출 검증
+        test_pairs = [
+            (2**128 - 1, -(2**128 - 1)), # 서로 절댓값이 같고 부호만 반대인 덧셈 -> 결과 0
+            (-(2**128 - 1), 2**128 - 1),
+            (2**192, -2**192),
+            (-2**64, 2**64 - 1),
+            (2**64 - 1, -2**64)
+        ]
+        
+        for a, b in test_pairs:
+            sign1, w1 = to_words_str(a)
+            sign2, w2 = to_words_str(b)
+            
+            # (A) + (B)
+            out = run_cpp("operator_plus", sign1, w1, sign2, w2)
+            self.assertEqual(parse_cpp_output(out), a + b, f"Failed combination: {a} + {b}")
+            
+            # (A) - (B)
+            out = run_cpp("operator_minus", sign1, w1, sign2, w2)
+            self.assertEqual(parse_cpp_output(out), a - b, f"Failed combination: {a} - {b}")
+
+    def test_string_constructor_edge_formats(self):
+        # 부호 및 형식이 특이한 올바른 문자열 형식 파싱 검증
+        formats = [
+            ("+0", 0),
+            ("-0", 0),
+            ("+1234567890", 1234567890),
+            ("-1234567890", -1234567890),
+            ("123,456", 123456), # 쉼표 포함 문자열 파싱 (is_number에서 허용)
+            ("-1,2,3,4,5", -12345)
+        ]
+        for raw_str, expected in formats:
+            out = run_cpp("construct_string", raw_str)
+            self.assertEqual(parse_cpp_output(out), expected, f"Failed parsing string edge format: '{raw_str}'")
 
 if __name__ == '__main__':
     unittest.main()
