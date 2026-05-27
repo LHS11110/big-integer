@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include <iostream>
 
 class Integer {
 private:
@@ -10,7 +11,7 @@ private:
   Integer& plus_(const Integer&, const bool ignore_carry = false);
   Integer& minus_(const Integer&);
   Integer& _minus(Integer&) const;
-  bool is_zero() const;
+  bool is_zero(void) const;
 
 public:
   Integer();
@@ -19,6 +20,9 @@ public:
   Integer(const Integer&, const bool b = false);
   Integer(Integer&&);
   Integer(Integer&&, const bool);
+  Integer(const std::string&);
+
+  uint32_t mod10(void) const;
 
   /**
    * @brief 부호를 바꿉니다. 단, 이 함수는 전달받은 객체의 상태를 변경시킵니다.
@@ -57,7 +61,7 @@ public:
    * @return 부호가 바뀐 결과
    * @note 시간 복잡도 : O(n) (n은 비트의 길이)
    */
-  Integer operator-() const;
+  Integer operator-(void) const;
 
   /**
    * @brief 비트열의 모든 비트를 반전(NOT 연산)합니다.
@@ -68,7 +72,7 @@ public:
    * @return Integer 모든 비트가 반전된 새로운 Integer 객체
    * @note 시간 복잡도: O(n) (n은 비트의 길이)
    */
-  Integer operator~() const;
+  Integer operator~(void) const;
 
   /**
    *  @brief left-bit-shift 연산을 수행합니다.
@@ -78,6 +82,33 @@ public:
    * @note 시간 복잡도 : O(n) (n은 비트의 길이)
    */
   Integer operator<<(const uint64_t shift) const;
+
+  /**
+   *  @brief right-bit-shift 연산을 수행합니다.
+   * 
+   * @param shift right-shift할 횟수 
+   * @return rshift가 수행된 새로운 Integer 객체
+   * @note 시간 복잡도 : O(n) (n은 비트의 길이)
+   */
+  Integer operator>>(const uint64_t shift) const;
+
+  /**
+   *  @brief left-bit-shift 연산을 수행한 후 저장합니다.
+   * 
+   * @param shift left-shift할 횟수 
+   * @return this
+   * @note 시간 복잡도 : O(n) (n은 비트의 길이)
+   */
+  Integer& operator<<=(const uint64_t shift);
+
+  /**
+   *  @brief right-bit-shift 연산을 수행한 후 저장합니다.
+   * 
+   * @param shift right-shift할 횟수 
+   * @return this
+   * @note 시간 복잡도 : O(n) (n은 비트의 길이)
+   */
+  Integer& operator>>=(const uint64_t shift);
 
   /**
    * @brief 산술 덧셈을 합니다.
@@ -134,4 +165,18 @@ public:
    * @note 시간 복잡도 : O(n)
    */
   bool operator!=(const Integer& rhs) const;
+
+  bool operator==(const Integer& rhs) const;
+
+  Integer& operator=(const Integer&);
+  Integer& operator=(Integer&&);
+
+  /**
+   * @brief 주어진 정수를 10진법으로 구성된 문자열로 변환합니다.
+   * @return 10진법으로 구성된 문자열
+   * @note 시간 복잡도 : O(n^2) (n은 비트의 길이)
+   */
+  std::string to_string(void) const;
 };
+
+std::ostream& operator<<(std::ostream&, const Integer &);
