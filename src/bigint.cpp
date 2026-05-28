@@ -42,8 +42,9 @@ Integer &Integer::plus_(const Integer &other, const bool ignore_carry) {
     uint64_t sum = 0;
     for (uint64_t i = 0; i < len; i++) {
         sum = carry; // carry
+        carry = false;
         if (i < this_len) {
-            carry = array[i] == MASK2 && carry;
+            carry = array[i] == MASK2 && sum == 1;
             sum += array[i]; // carry + array[i]
         }
         if (i < other_len) {
@@ -69,8 +70,9 @@ Integer &Integer::minus_(const Integer &other) {
     uint64_t sum = 0;
     for (uint64_t i = 0; i < len; i++) {
         sum = carry; // carry
+        carry = false;
         if (i < this_len) {
-            carry = array[i] == MASK2 && carry;
+            carry = array[i] == MASK2 && sum == 1;
             sum += array[i]; // carry + array[i]
         }
         if (i < other_len) {
@@ -106,8 +108,9 @@ Integer &Integer::_minus(Integer &other) const {
     uint64_t sum = 0;
     for (uint64_t i = 0; i < len; i++) {
         sum = carry; // carry
+        carry = false;
         if (i < this_len) {
-            carry = array[i] == MASK2 && carry;
+            carry = array[i] == MASK2 && sum == 1;
             sum += array[i]; // carry + array[i]
         }
         if (i < other_len) {
@@ -203,8 +206,9 @@ Integer Integer::plus(const Integer &other, const bool ignore_carry) const {
     uint64_t sum = 0;
     for (uint64_t i = 0; i < len; i++) {
         sum = carry; // carry
+        carry = false;
         if (i < this_len) {
-        carry = array[i] == MASK2 && carry;
+        carry = array[i] == MASK2 && sum == 1;
         sum += array[i]; // carry + array[i]
         }
         if (i < other_len) {
@@ -232,7 +236,7 @@ Integer Integer::minus(const Integer &other) const {
                                 true);   // 1을 더하여 음수로 변환 후 덧셈 연산
     if (result.array.back() & MASK) {    // 음수라면 이를 다시 양수로 바꾸기 위해
         for (uint64_t i = 0; i < len; i++) // O(n)의 시간 복잡도로 비트 반전 수행
-        result.array[i] = ~result.array[i]; // NOT result.array[i]
+            result.array[i] = ~result.array[i]; // NOT result.array[i]
         result.plus_one(true);                // 1을 더하여 음수로 변환
         result.is_negative = true;            // 음수임을 표시
     }

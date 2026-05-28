@@ -157,17 +157,19 @@ class TestBigIntPublicAPI(unittest.TestCase):
             (0xFFFFFFFFFFFFFFFF, 1),
             (0xFFFFFFFFFFFFFFFF, 0xFFFFFFFFFFFFFFFF),
         ]
-        # Fuzzing
-        for _ in range(50):
-            a = random.randint(0, 2**256)
-            b = random.randint(0, 2**256)
+        # MASSIVE FUZZING: 1000 pairs of completely randomized bit sizes (1 to 1024 bits)
+        for _ in range(1000):
+            bits_a = random.randint(1, 1024)
+            bits_b = random.randint(1, 1024)
+            a = random.randint(0, 2**bits_a)
+            b = random.randint(0, 2**bits_b)
             test_pairs.append((a, b))
 
         for a, b in test_pairs:
             sign1, w1 = to_words_str(a)
             sign2, w2 = to_words_str(b)
             out = run_cpp("plus", sign1, w1, sign2, w2, "false")
-            self.assertEqual(parse_cpp_output(out), a + b)
+            self.assertEqual(parse_cpp_output(out), a + b, f"Failed: plus({a}, {b}, false)")
 
             # ignore carry
             out = run_cpp("plus", sign1, w1, sign2, w2, "true")
@@ -176,7 +178,7 @@ class TestBigIntPublicAPI(unittest.TestCase):
             max_len = max(len_w1, len_w2)
             limit = 1 << (64 * max_len)
             expected = (a + b) % limit
-            self.assertEqual(parse_cpp_output(out), expected)
+            self.assertEqual(parse_cpp_output(out), expected, f"Failed: plus({a}, {b}, true)")
 
     def test_minus_method(self):
         test_pairs = [
@@ -186,16 +188,19 @@ class TestBigIntPublicAPI(unittest.TestCase):
             (0xFFFFFFFFFFFFFFFF, 1),
             (1, 0xFFFFFFFFFFFFFFFF),
         ]
-        for _ in range(50):
-            a = random.randint(0, 2**256)
-            b = random.randint(0, 2**256)
+        # MASSIVE FUZZING: 1000 pairs of completely randomized bit sizes (1 to 1024 bits)
+        for _ in range(1000):
+            bits_a = random.randint(1, 1024)
+            bits_b = random.randint(1, 1024)
+            a = random.randint(0, 2**bits_a)
+            b = random.randint(0, 2**bits_b)
             test_pairs.append((a, b))
 
         for a, b in test_pairs:
             sign1, w1 = to_words_str(a)
             sign2, w2 = to_words_str(b)
             out = run_cpp("minus", sign1, w1, sign2, w2)
-            self.assertEqual(parse_cpp_output(out), a - b)
+            self.assertEqual(parse_cpp_output(out), a - b, f"Failed: minus({a}, {b})")
 
     def test_operator_negate(self):
         test_vals = [0, 1, -1, 1234567890123456789, -9876543210987654321]
@@ -270,9 +275,12 @@ class TestBigIntPublicAPI(unittest.TestCase):
             (0, 0), (12345, 67890), (-12345, 67890), (12345, -67890), (-12345, -67890),
             (0xFFFFFFFFFFFFFFFF, 1), (-0xFFFFFFFFFFFFFFFF, 1)
         ]
-        for _ in range(50):
-            a = random.randint(-2**256, 2**256)
-            b = random.randint(-2**256, 2**256)
+        # MASSIVE FUZZING: 1000 pairs of completely randomized signed integers (up to 1024 bits)
+        for _ in range(1000):
+            bits_a = random.randint(1, 1024)
+            bits_b = random.randint(1, 1024)
+            a = random.randint(-2**bits_a, 2**bits_a)
+            b = random.randint(-2**bits_b, 2**bits_b)
             test_pairs.append((a, b))
 
         for a, b in test_pairs:
@@ -292,9 +300,12 @@ class TestBigIntPublicAPI(unittest.TestCase):
             (0, 0), (12345, 67890), (-12345, 67890), (12345, -67890), (-12345, -67890),
             (0xFFFFFFFFFFFFFFFF, 1), (-0xFFFFFFFFFFFFFFFF, 1)
         ]
-        for _ in range(50):
-            a = random.randint(-2**256, 2**256)
-            b = random.randint(-2**256, 2**256)
+        # MASSIVE FUZZING: 1000 pairs of completely randomized signed integers (up to 1024 bits)
+        for _ in range(1000):
+            bits_a = random.randint(1, 1024)
+            bits_b = random.randint(1, 1024)
+            a = random.randint(-2**bits_a, 2**bits_a)
+            b = random.randint(-2**bits_b, 2**bits_b)
             test_pairs.append((a, b))
 
         for a, b in test_pairs:
@@ -315,9 +326,12 @@ class TestBigIntPublicAPI(unittest.TestCase):
             (12345, 12345), (12345, 12346), (-12345, -12346),
             (258, 513), (513, 258)
         ]
-        for _ in range(100):
-            a = random.randint(-2**256, 2**256)
-            b = random.randint(-2**256, 2**256)
+        # MASSIVE FUZZING: 1000 pairs of completely randomized signed integers (up to 1024 bits)
+        for _ in range(1000):
+            bits_a = random.randint(1, 1024)
+            bits_b = random.randint(1, 1024)
+            a = random.randint(-2**bits_a, 2**bits_a)
+            b = random.randint(-2**bits_b, 2**bits_b)
             test_pairs.append((a, b))
 
         for a, b in test_pairs:
