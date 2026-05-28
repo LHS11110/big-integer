@@ -143,13 +143,6 @@ bool Integer::is_zero() const {
     return true;
 }
 
-uint32_t Integer::mod10() const {
-    uint32_t result = 0;
-    for (size_t i = 0; i < array.size(); i++)
-        result = (result + ((array[i] % 10) * (i == 0 ? 1 : 6))) % 10; // f(a * 2^i) = f(a) * f(2^i)
-    return result;
-}
-
 Integer::Integer() : is_negative(false), array({0}) {}
 
 Integer::Integer(const uint64_t num, const bool b)
@@ -425,6 +418,10 @@ bool Integer::operator<=(const Integer &other) const {
     return true; // |this| = |other|
 }
 
+bool Integer::operator<(const Integer& other) const {
+    return this->operator<=(other) && this->operator!=(other);
+}
+
 bool Integer::operator!=(const Integer &other) const {
     if (is_zero() && other.is_zero())
         return false;
@@ -512,4 +509,11 @@ std::string Integer::to_string(void) const {
 std::ostream& operator<<(std::ostream& cout, const Integer &num) {
     cout << num.to_string();
     return cout;
+}
+
+std::istream& operator>>(std::istream& cin, Integer &num) {
+    std::string number;
+    cin >> number;
+    num = std::move(Integer(number));
+    return cin;
 }

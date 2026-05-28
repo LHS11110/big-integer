@@ -22,8 +22,6 @@ public:
   Integer(Integer&&, const bool);
   Integer(const std::string&);
 
-  uint32_t mod10(void) const;
-
   /**
    * @brief 부호를 바꿉니다. 단, 이 함수는 전달받은 객체의 상태를 변경시킵니다.
    * @param n 부호를 바꿀 Integer 객체
@@ -159,6 +157,14 @@ public:
   bool operator<=(const Integer& rhs) const;
 
   /**
+   * @brief 크기를 비교합니다.
+   * @param rhs 비교할 우항 정수 객체
+   * @return 비교할 객체보다 작은지 대한 여부
+   * @note 시간 복잡도 : O(n)
+   */
+  bool operator<(const Integer& rhs) const;
+
+  /**
    * @brief 두 정수가 다른지 비교합니다.
    * @param rhs 비교할 우항 정수 객체
    * @return 다른지에 대한 여부
@@ -180,3 +186,4 @@ public:
 };
 
 std::ostream& operator<<(std::ostream&, const Integer &);
+std::istream& operator>>(std::istream&, Integer &);
