@@ -77,7 +77,7 @@ public:
    * 
    * @param shift left-shift할 횟수 
    * @return lshift가 수행된 새로운 Integer 객체
-   * @note 시간 복잡도 : O(n) (n은 비트의 길이)
+   * @note 시간 복잡도 : O(n + m) (n은 비트의 길이, m은 시프트 횟수)
    */
   Integer operator<<(const uint64_t shift) const;
 
@@ -95,7 +95,7 @@ public:
    * 
    * @param shift left-shift할 횟수 
    * @return this
-   * @note 시간 복잡도 : O(n) (n은 비트의 길이)
+   * @note 시간 복잡도 : O(n + m) (n은 비트의 길이, m은 시프트 횟수)
    */
   Integer& operator<<=(const uint64_t shift);
 
