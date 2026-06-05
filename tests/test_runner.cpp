@@ -149,6 +149,21 @@ int main(int argc, char *argv[]) {
     Integer n1(argv[2]);
     Integer n2(argv[3]);
     std::cout << (n1 == n2 ? "true" : "false") << std::endl;
+  } else if (method == "operator_lt") {
+    Integer n1(argv[2]);
+    Integer n2(argv[3]);
+    std::cout << (n1 < n2 ? "true" : "false") << std::endl;
+  } else if (method == "abs_lvalue") {
+    Integer n(argv[2]);
+    Integer::abs(n);
+    std::cout << n << std::endl;
+  } else if (method == "abs_rvalue") {
+    Integer n(argv[2]);
+    Integer result = Integer::abs(std::move(n));
+    std::cout << result << std::endl;
+  } else if (method == "size") {
+    Integer n(argv[2]);
+    std::cout << n.size() << std::endl;
   } else if (method == "operator_assign_copy") {
     Integer n1(argv[2]);
     Integer n2(argv[3]);
