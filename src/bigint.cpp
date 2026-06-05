@@ -240,7 +240,7 @@ Integer Integer::karatsuba_mul(const Integer &other) const {
     }
     Integer z0 = x0.karatsuba_mul(y0);
     Integer z2 = x1.karatsuba_mul(y1);
-    Integer z3 = (x1 + x0).karatsuba_mul(y1 + y0);
+    Integer z3 = x1.plus_(x0).karatsuba_mul(y1.plus_(y0));
     Integer z1 = z3 - (z2 + z0);
     return (is_negative ^ other.is_negative) ? std::move(negate(std::move(z0 + (z1 << (half_len << 6)) + (z2 << (half_len << 7)))))
                                         : (std::move(z0 + (z1 << (half_len << 6)) + (z2 << (half_len << 7))));
