@@ -15,6 +15,30 @@ bool is_number(const std::string& str) {
     return true;
 }
 
+uint64_t log2(const uint64_t n) {
+    uint64_t m = n;
+    uint64_t result = 0;
+    if (m & 0xFFFFFFFF00000000ULL) {
+        result += 32;
+        m >>= 32;
+    } if (m & 0xFFFF0000ULL) {
+        result += 16;
+        m >>= 16;
+    } if (m & 0xFF00ULL) {
+        result += 8;
+        m >>= 8;
+    } if (m & 0xF0ULL) {
+        result += 4;
+        m >>= 4;
+    } if (m & 0xCULL) {
+        result += 2;
+        m >>= 2;
+    } if (m & 0x2ULL) {
+        result += 1;
+    }
+    return result;
+}
+
 Integer &Integer::plus_one(const bool ignore_carry) {
     bool carry = true;
     const uint64_t len = array.size();
@@ -93,8 +117,7 @@ Integer &Integer::minus_(const Integer &other) {
         is_negative = true;
     } else
         is_negative = false;
-    while (array.size() > 1 && array.back() == 0)
-        array.pop_back();
+    normalize();
     return *this;
 }
 
@@ -131,8 +154,7 @@ Integer &Integer::_minus(Integer &other) const {
         other.is_negative = true;
     } else // 결과가 음이 아닌 정수라면
         other.is_negative = false;
-    while (other.array.size() > 1 && other.array.back() == 0)
-        other.array.pop_back();
+    other.normalize();
     return other;
 }
 
@@ -141,6 +163,85 @@ bool Integer::is_zero() const {
         if (num != 0)
             return false;
     return true;
+}
+
+void Integer::normalize() {
+    while (array.size() > 1 && array.back() == 0)
+        array.pop_back();
+}
+
+uint64_t Integer::max_bit() const {
+    if (is_zero())
+        return 0;
+    size_t last = 0;
+    for (size_t i = 0; i < array.size(); i++)
+        if (array[i] != 0)
+            last = i;
+    return (last << 6) + log2(array[last]);
+}
+
+Integer Integer::karatsuba_mul(const Integer &other) const {
+    if (is_zero() || other.is_zero())
+        return std::move(Integer(0));
+    if (array.size() == 1 && other.array.size() == 1) {
+        static const uint64_t mask = 0xFFFFFFFF00000000ULL;
+        uint64_t high = (array[0] & mask) >> 32;
+        uint64_t low = array[0] & ~mask;
+        uint64_t other_high = (other.array[0] & mask) >> 32;
+        uint64_t other_low = other.array[0] & ~mask;
+
+        // a = high * 2^32 + low
+        // b = other_high * 2^32 + other_low
+        // ab = high * other_high * 2^64 + (high * other_low + low * other_high) * 2^32 + low * other_low
+        uint64_t z0 = low * other_low;
+        uint64_t z1_l = high * other_low;
+        uint64_t z1_r = low * other_high;
+        uint64_t z2 = high * other_high;
+        Integer result(z2);
+        result <<= 32;
+        result += z1_l;
+        result += z1_r;
+        result <<= 32;
+        result += z0;
+        result.is_negative = is_negative ^ other.is_negative;
+        return std::move(result);
+    }
+    // 1 < array.size() || 1 < other.array.size()
+    Integer result;
+    const uint64_t len = std::max(array.size(), other.array.size());
+    const uint64_t len2 = log2(len) + (((1ULL << log2(len)) - 1) & len ? 1 : 0); // 2의 제곱수로 맞춘 길이
+    // 1 < 2^(len2 - 1) < len <= 2^len2
+    // 1 <= len2
+    Integer x0;
+    Integer x1;
+    const uint64_t half_len = 1 << (len2 - 1);
+    if (array.size() <= half_len) {
+        x0 = *this;
+    } else { // half_len < array.size()
+        x1.array.resize(array.size() - half_len, 0);
+        for (size_t i = 0; i < array.size() - half_len; i++)
+            x1.array[i] = array[i + half_len];
+        x0.array.resize(half_len, 0);
+        for (size_t i = 0; i < half_len; i++)
+            x0.array[i] = array[i];
+    }
+    Integer y0;
+    Integer y1;
+    if (other.array.size() <= half_len) {
+        y0 = other;
+    } else {
+        y1.array.resize(other.array.size() - half_len, 0);
+        for (size_t i = 0; i < other.array.size() - half_len; i++)
+            y1.array[i] = other.array[i + half_len];
+        y0.array.resize(half_len, 0);
+        for (size_t i = 0; i < half_len; i++)
+            y0.array[i] = other.array[i];
+    }
+    Integer z0 = x0.karatsuba_mul(y0);
+    Integer z2 = x1.karatsuba_mul(y1);
+    Integer z3 = (x1 + x0).karatsuba_mul(y1 + y0);
+    Integer z1 = z3 - (z2 + z0);
+    return std::move(z0 + (z1 << (half_len << 6)) + (z2 << (half_len << 7)));
 }
 
 Integer::Integer() : is_negative(false), array({0}) {}
@@ -233,9 +334,7 @@ Integer Integer::minus(const Integer &other) const {
         result.plus_one(true);                // 1을 더하여 음수로 변환
         result.is_negative = true;            // 음수임을 표시
     }
-    while (result.array.size() > 1 &&
-            result.array.back() == 0) // 최상위 8바이트가 0이면 제거하여 공간 절약
-        result.array.pop_back();
+    result.normalize();
     return std::move(result);
 }
 
@@ -295,8 +394,7 @@ Integer Integer::operator>>(const uint64_t c) const {
         result.array[i] |= result.array[i + 1] << shift;
     }
     result.array.back() >>= q;
-    while (result.array.size() > 1 && result.array.back() == 0)
-        result.array.pop_back();
+    result.normalize();
     return std::move(result);
 }
 
@@ -344,8 +442,7 @@ Integer& Integer::operator>>=(const uint64_t c) {
         array[i] |= array[i + 1] << shift;
     }
     array.back() >>= q;
-    while (array.size() > 1 && array.back() == 0)
-        array.pop_back();
+    normalize();
     return *this;
 }
 
@@ -504,6 +601,10 @@ std::string Integer::to_string(void) const {
         }
     }
     return std::move(str_result);
+}
+
+size_t Integer::size() const {
+    return array.size();
 }
 
 std::ostream& operator<<(std::ostream& cout, const Integer &num) {

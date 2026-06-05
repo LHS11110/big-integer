@@ -12,6 +12,8 @@ private:
   Integer& minus_(const Integer&);
   Integer& _minus(Integer&) const;
   bool is_zero(void) const;
+  void normalize(void);
+  uint64_t max_bit(void) const;
 
 public:
   Integer();
@@ -21,6 +23,8 @@ public:
   Integer(Integer&&);
   Integer(Integer&&, const bool);
   Integer(const std::string&);
+
+  Integer karatsuba_mul(const Integer&) const;
 
   /**
    * @brief 부호를 바꿉니다. 단, 이 함수는 전달받은 객체의 상태를 변경시킵니다.
@@ -183,6 +187,8 @@ public:
    * @note 시간 복잡도 : O(n^2) (n은 비트의 길이)
    */
   std::string to_string(void) const;
+
+  size_t size(void) const;
 };
 
 std::ostream& operator<<(std::ostream&, const Integer &);
