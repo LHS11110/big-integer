@@ -47,6 +47,15 @@ class TestBigIntPublicAPI(unittest.TestCase):
             except OSError:
                 pass
 
+    def setUp(self):
+        import time
+        self._start_time = time.time()
+
+    def tearDown(self):
+        import time
+        duration = time.time() - self._start_time
+        print(f"\n[TIME] {self.id().split('.')[-1]}: {duration:.4f}s", flush=True)
+
     def test_constructors(self):
         # 1. Default constructor Integer() -> Should initialize to 0
         out = run_cpp("construct_default")
@@ -492,6 +501,21 @@ class TestBigIntPublicAPI(unittest.TestCase):
             
             out_rshift_assign = run_cpp("operator_rshift_assign", str(a), shift)
             self.assertEqual(parse_cpp_output(out_rshift_assign), expected_rshift, f"Failed {a} >>= {shift}")
+
+    def test_karatsuba_mul_random(self):
+        # 100자리 이상 200자리 이하의 거대 랜덤 정수 대상 카라추바 곱셈 교차 검증
+        for _ in range(100):  # 100쌍 Fuzzing
+            len_a = random.randint(100, 200)
+            len_b = random.randint(100, 200)
+            a = random.randint(10**(len_a - 1), 10**len_a - 1)
+            b = random.randint(10**(len_b - 1), 10**len_b - 1)
+            
+            # 랜덤 부호 부여
+            a = -a if random.choice([True, False]) else a
+            b = -b if random.choice([True, False]) else b
+            
+            out_mul = run_cpp("karatsuba_mul", str(a), str(b))
+            self.assertEqual(parse_cpp_output(out_mul), a * b, f"Failed Karatsuba: {a} * {b}")
 
 if __name__ == '__main__':
     unittest.main()

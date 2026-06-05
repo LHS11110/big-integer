@@ -84,6 +84,11 @@ int main(int argc, char *argv[]) {
     Integer n2(argv[3]);
     Integer result = n1.minus(n2);
     std::cout << result << std::endl;
+  } else if (method == "karatsuba_mul") {
+    Integer n1(argv[2]);
+    Integer n2(argv[3]);
+    Integer result = n1.karatsuba_mul(n2);
+    std::cout << result << std::endl;
   } else if (method == "operator_negate") {
     Integer n(argv[2]);
     Integer result = -n;

@@ -25,6 +25,8 @@ public:
   Integer(const std::string&);
 
   Integer karatsuba_mul(const Integer&) const;
+  static Integer& abs(Integer &);
+  static Integer abs(Integer &&);
 
   /**
    * @brief 부호를 바꿉니다. 단, 이 함수는 전달받은 객체의 상태를 변경시킵니다.

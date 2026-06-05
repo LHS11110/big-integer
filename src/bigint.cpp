@@ -207,7 +207,6 @@ Integer Integer::karatsuba_mul(const Integer &other) const {
         return std::move(result);
     }
     // 1 < array.size() || 1 < other.array.size()
-    Integer result;
     const uint64_t len = std::max(array.size(), other.array.size());
     const uint64_t len2 = log2(len) + (((1ULL << log2(len)) - 1) & len ? 1 : 0); // 2의 제곱수로 맞춘 길이
     // 1 < 2^(len2 - 1) < len <= 2^len2
@@ -217,6 +216,7 @@ Integer Integer::karatsuba_mul(const Integer &other) const {
     const uint64_t half_len = 1 << (len2 - 1);
     if (array.size() <= half_len) {
         x0 = *this;
+        x0.is_negative = false; // x0, x1, y0, y1은 항상 양의 정수
     } else { // half_len < array.size()
         x1.array.resize(array.size() - half_len, 0);
         for (size_t i = 0; i < array.size() - half_len; i++)
@@ -229,6 +229,7 @@ Integer Integer::karatsuba_mul(const Integer &other) const {
     Integer y1;
     if (other.array.size() <= half_len) {
         y0 = other;
+        y0.is_negative = false;
     } else {
         y1.array.resize(other.array.size() - half_len, 0);
         for (size_t i = 0; i < other.array.size() - half_len; i++)
@@ -241,7 +242,18 @@ Integer Integer::karatsuba_mul(const Integer &other) const {
     Integer z2 = x1.karatsuba_mul(y1);
     Integer z3 = (x1 + x0).karatsuba_mul(y1 + y0);
     Integer z1 = z3 - (z2 + z0);
-    return std::move(z0 + (z1 << (half_len << 6)) + (z2 << (half_len << 7)));
+    return (is_negative ^ other.is_negative) ? std::move(negate(std::move(z0 + (z1 << (half_len << 6)) + (z2 << (half_len << 7)))))
+                                        : (std::move(z0 + (z1 << (half_len << 6)) + (z2 << (half_len << 7))));
+}
+
+Integer& Integer::abs(Integer& n) {
+    n.is_negative = false;
+    return n;
+}
+
+Integer Integer::abs(Integer&& n) {
+    n.is_negative = false;
+    return std::move(n);
 }
 
 Integer::Integer() : is_negative(false), array({0}) {}
