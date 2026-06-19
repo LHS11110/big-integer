@@ -12,12 +12,14 @@
 ```text
 .
 ├── include/
-│   └── bigint.hpp      # 라이브러리 헤더 파일 (Integer 클래스 정의)
+│   └── bigint.hpp        # 라이브러리 헤더 파일 (Integer 클래스 정의)
 ├── src/
-│   └── bigint.cpp      # 라이브러리 소스 코드 (핵심 연산 및 변환 구현)
+│   └── bigint.cpp        # 라이브러리 소스 코드 (핵심 연산 및 변환 구현)
 ├── tests/
-│   └── test_bigint.cpp # 단위 테스트 소스 코드 (검증 및 시나리오 테스트)
-└── LICENSE             # Apache 2.0 라이선스 파일
+│   ├── test_runner.cpp   # C++ 테스트 러너 (CLI 기반 메서드 호출 인터페이스)
+│   └── test_bigint.py    # Python 기반 단위 테스트 스크립트
+├── .gitignore            # Git 추적 제외 파일 목록
+└── LICENSE               # Apache 2.0 라이선스 파일
 ```
 
 ---
@@ -45,37 +47,19 @@ ar rcs libbigint.a bigint.o
 
 ### 2. 테스트 빌드 및 실행 방법 (Build & Run Tests)
 
-라이브러리의 기본 연산(덧셈, 뺄셈, 캐리 전파 등)에 대한 정밀성과 무결성을 검증하기 위한 단위 테스트 환경을 제공합니다.
+테스트 시스템은 **C++ 테스트 러너**와 **Python 테스트 스크립트**의 2단 구조로 구성되어 있습니다. C++ 테스트 러너는 CLI 인터페이스를 통해 개별 메서드를 호출하고, Python 스크립트가 이를 자동으로 실행하여 결과를 검증합니다.
 
-#### 테스트 컴파일 및 링크
+#### 테스트 러너 컴파일
 ```bash
-g++ -std=c++17 -Iinclude src/bigint.cpp tests/test_bigint.cpp -o test_runner
+g++ -std=c++17 -Iinclude src/bigint.cpp tests/test_runner.cpp -o test_runner
 ```
 
-#### 테스트 러너 실행
+#### Python 테스트 실행
 ```bash
-./test_runner
+python3 tests/test_bigint.py
 ```
 
-#### 테스트 출력 예시
-실행 시 아래와 같이 컬러풀하고 직관적인 테스트 통과 여부 요약 리포트가 터미널에 출력됩니다.
-
-```text
-===========================================
-=== BigInteger Unit Tests: plus & minus ===
-===========================================
-
---- Running plus() Tests ---
-[ PASS ] plus: 0 + 0
-[ PASS ] plus: 123 + 456 (Basic addition)
-[ PASS ] plus: 0xFFFFFFFFFFFFFFFF + 1 (Carry propagation)
-[ PASS ] plus: 0xFFFFFFFFFFFFFFFF + 0xFFFFFFFFFFFFFFFF (Max word values)
-
---- Running minus() Tests ---
-[ FAIL ] minus: 456 - 123 (Basic subtraction)
-         Expected: "333"
-...
-```
+*Python 테스트 스크립트는 내부적으로 컴파일된 `test_runner` 바이너리를 호출하여 각 메서드의 입출력을 자동으로 검증합니다.*
 
 ---
 
@@ -89,24 +73,50 @@ g++ -std=c++17 -Iinclude src/bigint.cpp tests/test_bigint.cpp -o test_runner
 #include "bigint.hpp"
 
 int main() {
-    // 1. 기본 생성자 (0으로 초기화)
-    Integer zero;
+    // 1. 다양한 생성자
+    Integer zero;                              // 기본 생성자 (0으로 초기화)
+    Integer a(123456789ULL);                   // 64비트 정수로 초기화
+    Integer b(987654321ULL);                   // 64비트 정수로 초기화
+    Integer big("999999999999999999999999999"); // 문자열로 초기화
 
-    // 2. 64비트 정수를 이용한 초기화
-    Integer a(123456789ULL);
-    Integer b(987654321ULL);
+    // 2. 산술 연산자
+    Integer sum  = a + b;       // 덧셈
+    Integer diff = b - a;       // 뺄셈
+    Integer prod = a * b;       // 곱셈 (Karatsuba 알고리즘)
+    Integer quot = b / a;       // 나눗셈
+    Integer rem  = b % a;       // 나머지
 
-    // 3. 덧셈 연산 (plus)
-    Integer sum = a.plus(b);
-    std::cout << "Sum (123456789 + 987654321) = " << sum.to_string() << std::endl;
+    // 3. 복합 대입 연산자
+    Integer c(100);
+    c += a;   // c = c + a
+    c -= b;   // c = c - b
 
-    // 4. 뺄셈 연산 (minus)
-    Integer diff = b.minus(a);
-    std::cout << "Diff (987654321 - 123456789) = " << diff.to_string() << std::endl;
+    // 4. 비트 연산
+    Integer shifted_l = a << 64;   // 좌측 시프트
+    Integer shifted_r = a >> 10;   // 우측 시프트
+    Integer inverted  = ~a;        // 비트 반전 (NOT)
 
-    // 5. 비트 반전 연산 (~ operator)
-    Integer inverted = ~a;
-    std::cout << "Inverted Bits of a = " << inverted.to_string() << std::endl;
+    // 5. 부호 관련
+    Integer neg = -a;              // 단항 마이너스 (부호 반전)
+    Integer pos = Integer::abs(neg); // 절댓값
+    Integer::negate(pos);          // 부호 변경 (in-place)
+
+    // 6. 비교 연산
+    bool eq = (a == b);   // 같은지 비교
+    bool ne = (a != b);   // 다른지 비교
+    bool lt = (a < b);    // 작은지 비교
+    bool le = (a <= b);   // 작거나 같은지 비교
+
+    // 7. 유틸리티
+    std::string str = prod.to_string();         // 10진법 문자열 변환
+    size_t words = prod.size();                  // Word(uint64_t) 개수
+    int64_t msb = Integer::MSB(a);               // 최상위 비트 인덱스
+    int64_t lsb = Integer::LSB(a);               // 최하위 비트 인덱스
+    int64_t log = Integer::log2(a);              // ⌊log₂(a)⌋
+
+    // 8. 스트림 입출력
+    std::cout << "Sum = " << sum << std::endl;   // ostream 출력
+    // std::cin >> a;                             // istream 입력
 
     return 0;
 }
@@ -131,16 +141,100 @@ g++ -std=c++17 -Iinclude main.cpp -L. -lbigint -o my_app
 
 ## ⚡ 주요 기능 및 성능 스펙 (Technical Specification)
 
-| 기능 / API | 시간 복잡도 | 세부 설명 |
-| :--- | :--- | :--- |
-| `Integer()` | $\mathcal{O}(1)$ | 기본 값 `0`으로 대용량 정수를 초기화합니다. |
-| `Integer(uint64_t)` | $\mathcal{O}(1)$ | 단일 64비트 정수를 매개변수로 받아 초기화합니다. |
-| `Integer(std::vector<uint64_t>)` | $\mathcal{O}(N)$ | 임의의 크기를 가진 64비트 단어열(Word Array) 구조로 초기화합니다. |
-| `plus(const Integer&)` | $\mathcal{O}(N)$ | 두 수의 산술 합을 올바르게 누적 계산합니다. 단어 간 캐리(Carry) 발생 시 자동으로 자릿수를 확장합니다. |
-| `minus(const Integer&)` | $\mathcal{O}(N)$ | 2의 보수법(2's Complement)을 활용하여 내부적으로 보수 계산 후 가산 연산을 수행해 차(Difference)를 구합니다. |
-| `operator~()` | $\mathcal{O}(N)$ | 모든 단어의 비트를 NOT 연산하여 반전시킵니다. |
+### 생성자 (Constructors)
 
-*여기서 N은 정수를 구성하는 64비트 단어(Word)의 갯수입니다.*
+| API | 시간 복잡도 | 세부 설명 |
+| :--- | :--- | :--- |
+| `Integer()` | $\mathcal{O}(1)$ | 기본 값 `0`으로 초기화합니다. |
+| `Integer(uint64_t, bool)` | $\mathcal{O}(1)$ | 64비트 정수와 부호 플래그로 초기화합니다. |
+| `Integer(const vector<uint64_t>&)` | $\mathcal{O}(N)$ | 64비트 단어열(Word Array)로 초기화합니다. |
+| `Integer(const Integer&)` | $\mathcal{O}(N)$ | 복사 생성자입니다. (default) |
+| `Integer(const Integer&, bool)` | $\mathcal{O}(N)$ | 복사 생성 시 부호를 지정합니다. |
+| `Integer(Integer&&)` | $\mathcal{O}(1)$ | 이동 생성자입니다. |
+| `Integer(Integer&&, bool)` | $\mathcal{O}(1)$ | 이동 생성 시 부호를 지정합니다. |
+| `Integer(const string&)` | $\mathcal{O}(N^2)$ | 10진법 문자열을 파싱하여 초기화합니다. |
+| `Integer(iterator, iterator, mask, bool)` | $\mathcal{O}(N)$ | 반복자 범위와 비트 마스크로 초기화합니다. |
+
+### 산술 연산 (Arithmetic Operations)
+
+| API | 시간 복잡도 | 세부 설명 |
+| :--- | :--- | :--- |
+| `plus(const Integer&, bool)` | $\mathcal{O}(N)$ | 부호에 관계없이 절댓값 덧셈을 수행합니다. 캐리 무시 옵션을 제공합니다. |
+| `minus(const Integer&)` | $\mathcal{O}(N)$ | 부호에 관계없이 절댓값 뺄셈을 수행합니다. 2의 보수법을 활용합니다. |
+| `karatsuba_mul(const Integer&)` | $\mathcal{O}(N^{\log_2 3})$ | Karatsuba 알고리즘 기반 곱셈을 수행합니다. |
+| `operator+(const Integer&)` | $\mathcal{O}(N)$ | 부호를 고려한 산술 덧셈입니다. |
+| `operator+=(const Integer&)` | $\mathcal{O}(N)$ | 부호를 고려한 산술 덧셈 후 결과를 저장합니다. |
+| `operator-(const Integer&)` | $\mathcal{O}(N)$ | 부호를 고려한 산술 뺄셈입니다. |
+| `operator-=(const Integer&)` | $\mathcal{O}(N)$ | 부호를 고려한 산술 뺄셈 후 결과를 저장합니다. |
+| `operator*(const Integer&)` | $\mathcal{O}(N^{\log_2 3})$ | Karatsuba 알고리즘 기반 곱셈 연산자입니다. |
+| `operator/(const Integer&)` | $\mathcal{O}(N^{\log_2 3} \log N)$ | 나눗셈을 수행합니다. 0으로 나누면 예외를 던집니다. |
+| `operator%(const Integer&)` | $\mathcal{O}(N^{\log_2 3} \log N)$ | 나머지 연산을 수행합니다. |
+| `operator-()` *(단항)* | $\mathcal{O}(N)$ | 부호를 반전한 새로운 객체를 반환합니다. |
+
+### 비트 연산 (Bitwise Operations)
+
+| API | 시간 복잡도 | 세부 설명 |
+| :--- | :--- | :--- |
+| `operator~()` | $\mathcal{O}(N)$ | 모든 비트를 반전(NOT)합니다. |
+| `operator<<(uint64_t)` | $\mathcal{O}(N + k)$ | 좌측 비트 시프트를 수행합니다. |
+| `operator>>(uint64_t)` | $\mathcal{O}(N)$ | 우측 비트 시프트를 수행합니다. |
+| `operator<<=(uint64_t)` | $\mathcal{O}(N + k)$ | 좌측 비트 시프트 후 결과를 저장합니다. |
+| `operator>>=(uint64_t)` | $\mathcal{O}(N)$ | 우측 비트 시프트 후 결과를 저장합니다. |
+| `operator[](pair<uint64_t, uint64_t>)` | $\mathcal{O}(N)$ | 특정 비트 구간을 추출합니다. |
+
+### 비교 연산 (Comparison Operations)
+
+| API | 시간 복잡도 | 세부 설명 |
+| :--- | :--- | :--- |
+| `operator==(const Integer&)` | $\mathcal{O}(N)$ | 두 정수가 같은지 비교합니다. |
+| `operator!=(const Integer&)` | $\mathcal{O}(N)$ | 두 정수가 다른지 비교합니다. |
+| `operator<(const Integer&)` | $\mathcal{O}(N)$ | 작은지 비교합니다. |
+| `operator<=(const Integer&)` | $\mathcal{O}(N)$ | 작거나 같은지 비교합니다. |
+
+### 대입 연산 (Assignment Operations)
+
+| API | 시간 복잡도 | 세부 설명 |
+| :--- | :--- | :--- |
+| `operator=(const Integer&)` | $\mathcal{O}(N)$ | 복사 대입 연산자입니다. |
+| `operator=(Integer&&)` | $\mathcal{O}(1)$ | 이동 대입 연산자입니다. |
+| `operator=(const string&)` | $\mathcal{O}(N^2)$ | 문자열을 파싱하여 대입합니다. |
+
+### 정적 메서드 (Static Methods)
+
+| API | 시간 복잡도 | 세부 설명 |
+| :--- | :--- | :--- |
+| `Integer::abs(Integer&)` | $\mathcal{O}(1)$ | lvalue 참조의 절댓값을 취합니다. (in-place) |
+| `Integer::abs(Integer&&)` | $\mathcal{O}(1)$ | rvalue 참조의 절댓값을 취합니다. |
+| `Integer::abs(const Integer&)` | $\mathcal{O}(N)$ | const 참조의 절댓값 복사본을 반환합니다. |
+| `Integer::negate(Integer&)` | $\mathcal{O}(1)$ | lvalue 참조의 부호를 반전합니다. (in-place) |
+| `Integer::negate(Integer&&)` | $\mathcal{O}(1)$ | rvalue 참조의 부호를 반전합니다. |
+| `Integer::log2(const Integer&)` | $\mathcal{O}(N)$ | $\lfloor \log_2 N \rfloor$ 을 계산합니다. |
+| `Integer::MSB(const Integer&)` | $\mathcal{O}(N)$ | 최상위 비트(MSB)의 인덱스를 반환합니다. |
+| `Integer::LSB(const Integer&)` | $\mathcal{O}(N)$ | 최하위 비트(LSB)의 인덱스를 반환합니다. |
+| `Integer::mod(const Integer&, uint64_t l)` | $\mathcal{O}(l)$ | $n \bmod 2^l$ 을 계산합니다. |
+| `Integer::inverse_of(const Integer&, uint64_t l)` | $\mathcal{O}(M(l))$ | $\bmod 2^l$ 에 대한 역원을 구합니다. (홀수만 가능) |
+| `Integer::reverse(const Integer&, uint64_t l)` | $\mathcal{O}(l)$ | $l$개의 비트를 뒤집습니다. |
+
+### 변환 및 유틸리티 (Conversion & Utility)
+
+| API | 시간 복잡도 | 세부 설명 |
+| :--- | :--- | :--- |
+| `to_string()` | $\mathcal{O}(N^2)$ | 10진법 문자열로 변환합니다. (Double Dabble 알고리즘) |
+| `size()` | $\mathcal{O}(1)$ | 내부 Word 배열의 크기를 반환합니다. |
+| `normalize()` | $\mathcal{O}(N)$ | 상위 0-값 Word를 제거하여 내부 표현을 정규화합니다. |
+| `operator<<(ostream&, const Integer&)` | $\mathcal{O}(N^2)$ | 스트림 출력 연산자입니다. |
+| `operator>>(istream&, Integer&)` | $\mathcal{O}(N^2)$ | 스트림 입력 연산자입니다. |
+
+### 자유 함수 (Free Functions)
+
+| API | 시간 복잡도 | 세부 설명 |
+| :--- | :--- | :--- |
+| `mod_add(a, b, m)` | $\mathcal{O}(N)$ | $(a + b) \bmod m$ 을 계산합니다. ($0 \le a, b < m$) |
+| `redc(T, N, NN, R)` | $\mathcal{O}(M(R))$ | Montgomery Reduction: $T \cdot 2^{-R} \bmod N$ 을 계산합니다. |
+| `mod_exp2(r, N, NN, R, twoR_mod_N)` | $\mathcal{O}(M(R) \log r)$ | Montgomery 형태의 모듈러 거듭제곱: $2^r \cdot 2^R \bmod N$ 을 계산합니다. |
+| `mod_odd(n, m)` | $\mathcal{O}(N^{\log_2 3} \log N)$ | 홀수 $m$에 대한 모듈러 연산: $n \bmod m$ 을 계산합니다. |
+
+*여기서 $N$은 정수를 구성하는 64비트 단어(Word)의 개수이며, $M(N)$은 곱셈 알고리즘의 시간 복잡도입니다.*
 
 ---
 
