@@ -278,7 +278,7 @@ public:
    * @brief 몫(this / n)을 구합니다.
    * @param n 정수
    * @return this / n
-   * @note 
+   * @note 시간 복잡도: O(n^log_2 3 log_2 n), 이는 점근적으로 O(n^2)보다 더 나은 성능을 보입니다.
    */
   Integer operator/(const Integer& n) const;
 
@@ -299,6 +299,14 @@ public:
   Integer operator[](std::pair<uint64_t, uint64_t> p) const;
 
   Integer& operator=(const std::string& str);
+
+  /**
+   * @brief 나머지(this mod n)를 구합니다.
+   * @param n 정수
+   * @return this mod n
+   * @note 시간 복잡도: O(n^log_2 3 log_2 n)
+   */
+  Integer operator%(const Integer& n) const;
 };
 
 std::ostream& operator<<(std::ostream&, const Integer &);

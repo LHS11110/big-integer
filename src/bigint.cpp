@@ -767,6 +767,10 @@ Integer& Integer::operator=(const std::string& str) {
     return *this;
 }
 
+Integer Integer::operator%(const Integer& n) const {
+    return std::move(*this - ((*this / n) * n));
+}
+
 std::ostream& operator<<(std::ostream& cout, const Integer &num) {
     cout << num.to_string();
     return cout;
