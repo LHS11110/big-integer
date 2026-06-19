@@ -297,8 +297,8 @@ std::istream& operator>>(std::istream&, Integer &);
 
 /**
  * @brief a + b mod m을 구합니다.
- * @param a a < m인 정수
- * @param b b < m인 정수
+ * @param a 0 <= a < m인 정수
+ * @param b 0 <= b < m인 정수
  * @param m 정수
  * @return a + b mod m
  * @note 시간 복잡도: O(m), m은 비트 개수
@@ -306,8 +306,8 @@ std::istream& operator>>(std::istream&, Integer &);
 Integer mod_add(const Integer& a, const Integer& b, const Integer& m);
 
 /**
- * @param T 정수
- * @param N 정수
+ * @param T 음이 아닌 정수
+ * @param N 음이 아닌 정수
  * @param NN 법 2^R에 대한 N의 역원에 음의 부호를 취한 정수: -N^-1 mod 2^R
  * @param R 부호없는 64비트 정수
  * @return T * 2^-R mod N
@@ -327,8 +327,8 @@ Integer redc(const Integer& T, const Integer& N, const Integer& NN, const uint64
 Integer mod_exp2(const uint64_t r, const Integer& N, const Integer& NN, const uint64_t R, const Integer& twoR_mod_N);
 
 /**
- * @param n 정수
- * @param m 홀수인 정수
+ * @param n 음이 아닌 정수
+ * @param m 음이 아닌 홀수인 정수
  * @return n mod m
  * @note 시간 복잡도: O(n^log_2 3)
  */
