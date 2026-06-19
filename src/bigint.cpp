@@ -203,24 +203,34 @@ Integer Integer::mod(const Integer& n, const uint64_t l) {
 }
 
 Integer Integer::operator/(const Integer& other) const {
-    if (other.is_zero())
+    if (other.is_zero()) // O(m)
         throw std::invalid_argument("Division by zero");
-    if (*this < other)
+    Integer result = std::move(Integer::abs(*this)); // O(n)
+    Integer d = std::move(Integer::abs(other)); // O(m)
+    if (result.is_zero()) // O(n)
         return 0;
-    if (Integer::log2(*this) == Integer::log2(other))
+    if (result < d) { // O(max(n, m))
+        if (this->is_negative ^ other.is_negative)
+            return std::move(Integer(1, true));
+        return 0;
+    }
+    if (result == d) { // O(max(n, m))
+        if (this->is_negative ^ other.is_negative)
+            return std::move(Integer(1, true));
         return 1;
-    Integer result = *this;
-    Integer d = other;
-    result.is_negative = false;
-    d.is_negative = false;
-    const int64_t n = Integer::LSB(other);
-    result >>= n;
-    d >>= n;
-    result -= mod_odd(result, d);
-    const uint64_t deg_result = Integer::log2(result);
-    Integer inverse_d = Integer::inverse_of(d, deg_result + 1);
-    result = std::move(Integer::mod(result * inverse_d, deg_result + 1));
+    }
+    // |other| < |this|
+    const int64_t n = Integer::LSB(d); // O(m) < O(n)
+    result >>= n; // O(n)
+    d >>= n; // O(m) < O(n)
+    const Integer r = std::move(mod_odd(result, d)); // O(n^log_2 3 log_2 n)
+    result -= r; // O(n)
+    const uint64_t deg_result = Integer::log2(result); // O(n)
+    Integer inverse_d = Integer::inverse_of(d, deg_result + 1); // O(M(n))
+    result = std::move(Integer::mod(result * inverse_d, deg_result + 1)); // O(M(n))
     result.is_negative = this->is_negative ^ other.is_negative;
+    if (result.is_negative && !r.is_zero()) // O(m) < O(n)
+        result.plus_one(true); // O(n)
     return std::move(result);
 }
 
@@ -326,6 +336,12 @@ Integer& Integer::abs(Integer& n) {
 Integer Integer::abs(Integer&& n) {
     n.is_negative = false;
     return std::move(n);
+}
+
+Integer Integer::abs(const Integer& n) {
+    Integer result = n;
+    result.is_negative = false;
+    return std::move(result);
 }
 
 Integer::Integer() : is_negative(false), array({0}) {}

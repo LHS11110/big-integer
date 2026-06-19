@@ -67,6 +67,7 @@ public:
    * @note 시간 복잡도: O(1)
    */
   static Integer& abs(Integer &n);
+
   /**
    * @brief 절댓값을 취합니다.
    * @param 절댓값을 취할 정수
@@ -74,6 +75,14 @@ public:
    * @note 시간 복잡도: O(1)
    */
   static Integer abs(Integer &&n);
+
+  /**
+   * @brief 절댓값을 취합니다.
+   * @param 절댓값을 취할 정수
+   * @return |n|
+   * @note 시간 복잡도: O(n)
+   */
+  static Integer abs(const Integer& n);
 
   /**
    * @brief 부호를 바꿉니다.
@@ -330,6 +339,6 @@ Integer mod_exp2(const uint64_t r, const Integer& N, const Integer& NN, const ui
  * @param n 음이 아닌 정수
  * @param m 음이 아닌 홀수인 정수
  * @return n mod m
- * @note 시간 복잡도: O(n^log_2 3)
+ * @note 시간 복잡도: O(n^log_2 3 log_2 n)
  */
 Integer mod_odd(const Integer& n, const Integer& m);

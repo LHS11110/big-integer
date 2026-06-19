@@ -477,6 +477,91 @@ class TestBigIntPublicAPI(unittest.TestCase):
         out = run_cpp("operator_div", str(a), "0")
         self.assertTrue(out.startswith("ERROR"))
 
+    def test_operator_div_signed(self):
+        """operator/(rhs) — 부호 있는 나눗셈 (모든 부호 조합)"""
+        for _ in range(ITER):
+            len_a = random.randint(100, 200)
+            len_b = random.randint(50, 100)
+            a_abs = generate_random_digits(len_a)
+            b_abs = generate_random_digits(len_b)
+
+            # (+a) / (+b)
+            out = run_cpp("operator_div", str(a_abs), str(b_abs))
+            self.assertEqual(parse_cpp_output(out), a_abs // b_abs)
+
+            # (+a) / (-b)
+            out = run_cpp("operator_div", str(a_abs), str(-b_abs))
+            expected = -(a_abs // b_abs) - (1 if a_abs % b_abs != 0 else 0)
+            self.assertEqual(parse_cpp_output(out), expected)
+
+            # (-a) / (+b)
+            out = run_cpp("operator_div", str(-a_abs), str(b_abs))
+            expected = -(a_abs // b_abs) - (1 if a_abs % b_abs != 0 else 0)
+            self.assertEqual(parse_cpp_output(out), expected)
+
+            # (-a) / (-b)
+            out = run_cpp("operator_div", str(-a_abs), str(-b_abs))
+            self.assertEqual(parse_cpp_output(out), a_abs // b_abs)
+
+    def test_operator_div_signed_smaller_dividend(self):
+        """음수 나눗셈: |a| < |b| 인 경우"""
+        for _ in range(ITER):
+            len_a = random.randint(100, 150)
+            len_b = random.randint(160, 200)
+            a_abs = generate_random_digits(len_a)
+            b_abs = generate_random_digits(len_b)
+
+            # (+a) / (-b) where |a| < |b| → -1 (나머지가 있으므로)
+            out = run_cpp("operator_div", str(a_abs), str(-b_abs))
+            self.assertEqual(parse_cpp_output(out), -1)
+
+            # (-a) / (+b) where |a| < |b| → -1
+            out = run_cpp("operator_div", str(-a_abs), str(b_abs))
+            self.assertEqual(parse_cpp_output(out), -1)
+
+            # (-a) / (-b) where |a| < |b| → 0
+            out = run_cpp("operator_div", str(-a_abs), str(-b_abs))
+            self.assertEqual(parse_cpp_output(out), 0)
+
+    def test_operator_div_signed_equal_magnitude(self):
+        """음수 나눗셈: |a| == |b| 인 경우"""
+        for _ in range(ITER):
+            len_a = random.randint(100, 200)
+            a_abs = generate_random_digits(len_a)
+
+            # (+a) / (-a) → -1
+            out = run_cpp("operator_div", str(a_abs), str(-a_abs))
+            self.assertEqual(parse_cpp_output(out), -1)
+
+            # (-a) / (+a) → -1
+            out = run_cpp("operator_div", str(-a_abs), str(a_abs))
+            self.assertEqual(parse_cpp_output(out), -1)
+
+            # (-a) / (-a) → 1
+            out = run_cpp("operator_div", str(-a_abs), str(-a_abs))
+            self.assertEqual(parse_cpp_output(out), 1)
+
+    def test_operator_div_signed_exact(self):
+        """음수 나눗셈: 나머지가 0인 경우 (a = q * b)"""
+        for _ in range(ITER):
+            len_q = random.randint(50, 100)
+            len_b = random.randint(50, 100)
+            q = generate_random_digits(len_q)
+            b_abs = generate_random_digits(len_b)
+            a_abs = q * b_abs  # 정확히 나누어 떨어짐
+
+            # (+a) / (-b) → -q
+            out = run_cpp("operator_div", str(a_abs), str(-b_abs))
+            self.assertEqual(parse_cpp_output(out), -q)
+
+            # (-a) / (+b) → -q
+            out = run_cpp("operator_div", str(-a_abs), str(b_abs))
+            self.assertEqual(parse_cpp_output(out), -q)
+
+            # (-a) / (-b) → +q
+            out = run_cpp("operator_div", str(-a_abs), str(-b_abs))
+            self.assertEqual(parse_cpp_output(out), q)
+
     # ═══════════════════════════════════════════════════════════
     #  비교 연산자 (Comparison Operators)
     # ═══════════════════════════════════════════════════════════
