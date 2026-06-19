@@ -15,7 +15,26 @@ bool is_number(const std::string& str) {
     return true;
 }
 
-uint64_t log2(const uint64_t n) {
+uint8_t reverse_8bit(uint8_t n) {
+    n = ((n & 0xF0) >> 4) | ((n & 0x0F) << 4);
+    n = ((n & 0xCC) >> 2) | ((n & 0x33) << 2);
+    n = ((n & 0xAA) >> 1) | ((n & 0x55) << 1);
+    return n;
+}
+
+uint16_t reverse_16bit(uint16_t n) {
+    return (static_cast<uint16_t>(reverse_8bit(n)) << 8) | reverse_8bit(n >> 8);
+}
+
+uint32_t reverse_32bit(uint32_t n) {
+    return (static_cast<uint32_t>(reverse_16bit(n)) << 16) | reverse_16bit(n >> 16);
+}
+
+uint64_t reverse_64bit(uint64_t n) {
+    return (static_cast<uint64_t>(reverse_32bit(n)) << 32) | reverse_32bit(n >> 32);
+}
+
+uint64_t _log2(const uint64_t n) {
     uint64_t m = n;
     uint64_t result = 0;
     if (m & 0xFFFFFFFF00000000ULL) {
@@ -165,19 +184,69 @@ bool Integer::is_zero() const {
     return true;
 }
 
-void Integer::normalize() {
-    while (array.size() > 1 && array.back() == 0)
-        array.pop_back();
+Integer Integer::mod(const Integer& n, const uint64_t l) {
+    const uint64_t q = l >> 6;
+    const uint64_t r = l & 0x3FULL;
+    Integer result;
+    result.array.resize(q + 1, 0); // result.array의 크기는 l에 의해 결정됨
+    for (size_t i = 0; i < std::min(q + 1, static_cast<uint64_t>(n.array.size())); i++) // O(l)
+        result.array[i] = n.array[i];
+    const uint64_t mask = (1ULL << r) + ~(0ULL);
+    result.array[q] &= mask;
+    result.normalize(); // O(l)
+    if (n.is_negative) {
+        Integer modulo(1);
+        modulo <<= l; // 2^l, O(l)
+        return std::move(modulo - result); // O(l)
+    }
+    return std::move(result);
 }
 
-uint64_t Integer::max_bit() const {
-    if (is_zero())
+Integer Integer::operator/(const Integer& other) const {
+    if (other.is_zero())
+        throw std::invalid_argument("Division by zero");
+    if (*this < other)
         return 0;
-    size_t last = 0;
-    for (size_t i = 0; i < array.size(); i++)
+    if (Integer::log2(*this) == Integer::log2(other))
+        return 1;
+    Integer result = *this;
+    Integer d = other;
+    result.is_negative = false;
+    d.is_negative = false;
+    const int64_t n = Integer::LSB(other);
+    result >>= n;
+    d >>= n;
+    result -= mod_odd(result, d);
+    const uint64_t deg_result = Integer::log2(result);
+    Integer inverse_d = Integer::inverse_of(d, deg_result + 1);
+    return Integer::mod(result * inverse_d, deg_result + 1);
+}
+
+void Integer::normalize() {
+    size_t len = 1;
+    for (size_t i = 1; i < array.size(); i++)
         if (array[i] != 0)
-            last = i;
-    return (last << 6) + log2(array[last]);
+            len = i + 1;
+    array.resize(len);
+}
+
+int64_t Integer::log2(const Integer& n) {
+    for (size_t i = n.array.size(); i > 0; i--)
+        if (n.array[i - 1] != 0)
+            return ((i - 1) << 6) + _log2(n.array[i - 1]);
+    return -1; // log 0은 정의되지 않지만, ⌊log n⌋ + 1은 보통 비트의 길이를 나타낸다. 따라서 -1로 정의하는 것이 자연스럽다.
+}
+
+int64_t Integer::MSB(const Integer& n) {
+    return Integer::log2(n);
+}
+
+int64_t Integer::LSB(const Integer& n) {
+    int64_t result = -1;
+    for (size_t i = n.array.size(); i > 0; i--)
+        if (n.array[i - 1] != 0)
+            result = ((i - 1) << 6) + (_log2(n.array[i - 1] & (~n.array[i - 1] + 1)));
+    return result;
 }
 
 Integer Integer::karatsuba_mul(const Integer &other) const {
@@ -208,7 +277,8 @@ Integer Integer::karatsuba_mul(const Integer &other) const {
     }
     // 1 < array.size() || 1 < other.array.size()
     const uint64_t len = std::max(array.size(), other.array.size());
-    const uint64_t len2 = log2(len) + (((1ULL << log2(len)) - 1) & len ? 1 : 0); // 2의 제곱수로 맞춘 길이
+    const uint64_t log2_len = _log2(len);
+    const uint64_t len2 = log2_len + (((1ULL << log2_len) - 1) & len ? 1 : 0); // 2의 제곱수로 맞춘 길이
     // 1 < 2^(len2 - 1) < len <= 2^len2
     // 1 <= len2
     Integer x0;
@@ -238,10 +308,10 @@ Integer Integer::karatsuba_mul(const Integer &other) const {
         for (size_t i = 0; i < half_len; i++)
             y0.array[i] = other.array[i];
     }
-    Integer z0 = x0.karatsuba_mul(y0);
-    Integer z2 = x1.karatsuba_mul(y1);
-    Integer z3 = x1.plus_(x0).karatsuba_mul(y1.plus_(y0));
-    Integer z1 = z3 - (z2 + z0);
+    Integer z0 = std::move(x0.karatsuba_mul(y0));
+    Integer z2 = std::move(x1.karatsuba_mul(y1));
+    Integer z3 = std::move(x1.plus_(x0).karatsuba_mul(y1.plus_(y0)));
+    Integer z1 = std::move(z3.minus_(z2 + z0));
     return (is_negative ^ other.is_negative) ? std::move(negate(std::move(z0 + (z1 << (half_len << 6)) + (z2 << (half_len << 7)))))
                                         : (std::move(z0 + (z1 << (half_len << 6)) + (z2 << (half_len << 7))));
 }
@@ -290,6 +360,13 @@ Integer::Integer(const std::string& str) : Integer() {
             this->plus_(str[i] - 48);
         }
     }
+}
+
+Integer::Integer(const std::vector<uint64_t>::iterator _first, const std::vector<uint64_t>::iterator _last, const uint64_t mask, const bool b) : array(_first, _last), is_negative(b) {
+    if (array.empty())
+        array.push_back(0);
+    else
+        array.back() &= mask;
 }
 
 Integer &Integer::negate(Integer &n) noexcept {
@@ -361,6 +438,8 @@ Integer Integer::operator~() const {
 }
 
 Integer Integer::operator<<(const uint64_t c) const {
+    if (c == 0)
+        return *this;
     const uint64_t r = c >> 6;     // c / 64
     const int64_t q = c & 0x3FULL; // c % 64
     // c = 64r + q
@@ -377,14 +456,13 @@ Integer Integer::operator<<(const uint64_t c) const {
     if (result.array.back() &
         mask) // 시프트 연산으로 인해 범위를 벗어나는 비트가 있는 경우
         result.array.push_back(0);
-    for (int64_t i = result.array.size() - 1; i > 0; i--) {
+    for (int64_t i = result.array.size() - 1; i > r; i--) {
         result.array[i] <<= q;
         result.array[i] |=
             result.array[i - 1] >> shift; // 아래 주석과 결과가 동일함
         // result.array[i] += (result.array[i - 1] & mask) >> shift;
     }
-
-    result.array[0] <<= q;
+    result.array[r] <<= q;
     return std::move(result);
 }
 
@@ -424,12 +502,12 @@ Integer& Integer::operator<<=(const uint64_t c) {
     const uint32_t shift = 64 - q;
     if (array.back() & mask) // 시프트 연산으로 인해 범위를 벗어나는 비트가 있는 경우
         array.push_back(0);
-    for (int64_t i = array.size() - 1; i > 0; i--) {
+    for (int64_t i = array.size() - 1; i > r; i--) {
         array[i] <<= q;
         array[i] |=
             (array[i - 1] & mask) >> shift;
     }
-    array[0] <<= q;
+    array[r] <<= q;
     return *this;
 }
 
@@ -619,6 +697,53 @@ size_t Integer::size() const {
     return array.size();
 }
 
+Integer Integer::operator*(const Integer& other) const {
+    return std::move(this->karatsuba_mul(other));
+}
+
+Integer Integer::inverse_of(const Integer& n, const uint64_t l) {
+    Integer result(1);
+    const uint64_t log2_l = _log2(l);
+    const uint64_t r = log2_l + ((l & ((1ULL << log2_l) + ~0ULL)) != 0 ? 1 : 0);
+    for (size_t i = 0; i < r; i++)
+        result = std::move(mod((result << 1) + mod(Integer::negate((mod(result * result, 1ULL << (i + 1)) * mod(n, 1ULL << (i + 1)))), 1ULL << (i + 1)), 1ULL << (i + 1)));
+    return std::move(result);
+}
+
+Integer Integer::reverse(const Integer& n, const uint64_t l) {
+    const uint64_t q = (l - 1) >> 6;
+    const uint32_t r = (l - 1) & 0x3F;
+    Integer result;
+    result.array.resize(q + 1, 0);
+    for (size_t i = 0; i < std::min(n.array.size(), static_cast<size_t>(q + 1)); i++)
+        result.array[i] = n.array[i];
+    result <<= 63 - r;
+    result.array.resize(q + 1, 0);
+    for (size_t i = 0; i < (((q + 1) >> 1) + ((q + 1) & 0x1)); i++) {
+        const uint64_t c = reverse_64bit(result.array[q - i]);
+        result.array[q - i] = reverse_64bit(result.array[i]);
+        result.array[i] = c;
+    }
+    result.normalize();
+    return std::move(result);
+}
+
+Integer Integer::operator[](std::pair<uint64_t, uint64_t> p) const {
+    const size_t q1 = static_cast<size_t>(p.first >> 6);
+    const uint64_t r1 = p.first & 0x3F;
+    const size_t q2 = static_cast<size_t>(p.second >> 6);
+    const uint64_t r2 = p.second & 0x3F;
+
+    Integer result;
+    result.array.resize(q2 - q1 + 1, 0); // O(q2 - q1)
+    for (size_t i = q1; i <= q2; i++) // O(q2 - q1)
+        result.array[i - q1] = array[i];
+    result.array[q2 - q1] &= ((1ULL << r2) + ~0ULL);
+    result >>= r1; // O(q2 - q1)
+    result.normalize(); // O(q2 - q1)
+    return std::move(result);
+}
+
 std::ostream& operator<<(std::ostream& cout, const Integer &num) {
     cout << num.to_string();
     return cout;
@@ -629,4 +754,68 @@ std::istream& operator>>(std::istream& cin, Integer &num) {
     cin >> number;
     num = std::move(Integer(number));
     return cin;
+}
+
+Integer mod_add(const Integer& a, const Integer& b, const Integer& m) {
+    const Integer result = std::move(a + b);
+    if (m <= result)
+        return std::move(result - m);
+    return std::move(result);
+}
+
+Integer redc(const Integer& T, const Integer& N, const Integer& NN, const uint64_t R) {
+    const Integer t = (T + Integer::mod(Integer::mod(T, R) * NN, R) * N) >> R;
+    if (N <= t)
+        return std::move(t - N);
+    return std::move(t);
+}
+
+Integer mod_exp2(const uint64_t r, const Integer& N, const Integer& NN, const uint64_t R, const Integer& twoR_mod_N) {
+    if (r == 0)
+        return 1;
+    if (r == 1)
+        return twoR_mod_N;
+    Integer rR_mod_m = std::move(mod_exp2(r >> 1, N, NN, R, twoR_mod_N));
+    rR_mod_m = std::move(redc(rR_mod_m * rR_mod_m, N, NN, R));
+    if (r & 0x1ULL)
+        rR_mod_m = std::move(redc(rR_mod_m * twoR_mod_N, N, NN, R));
+    return std::move(rR_mod_m);
+}
+
+Integer mod_odd(const Integer& n, const Integer& m) {
+    const uint64_t deg_n = Integer::log2(n);
+    const uint64_t deg_m = Integer::log2(m);
+
+    if (deg_n < deg_m)
+        return n;
+    else if (deg_m == deg_n) {
+        if (m <= n)
+            return n - m;
+        return n;
+    } // deg m < deg n
+
+    const Integer R = std::move(Integer(1) << (deg_m + 1)); // O(deg m)
+    const Integer neg_inverse_of_m = std::move(R - Integer::inverse_of(m, deg_m + 1)); // O(deg m)
+    const Integer R_mod_m = std::move(R - m); // O(deg m)
+    const Integer twoR_mod_m = std::move(mod_add(R_mod_m, R_mod_m, m)); // O(deg m)
+    const Integer R2_mod_m = std::move(redc(mod_exp2((deg_m + 1) << 1, m, neg_inverse_of_m, deg_m + 1, twoR_mod_m), m, neg_inverse_of_m, deg_m + 1)); // O(M(deg m) log deg m)
+    // R^2 R mod m
+    uint64_t pos = 0;
+    Integer _mul = R_mod_m;
+    Integer result = 0;
+    while (pos <= deg_n) { // deg n / deg m번 반복
+        Integer pn = std::move(n[{pos, pos + deg_m + 1}]); // O(deg m)
+        if (m <= pn) // O(deg m)
+            pn -= m; // O(deg m)
+        // pn mod m
+        pn = std::move(redc(pn * R2_mod_m, m, neg_inverse_of_m, deg_m + 1)); // O(M(deg m))
+        // pn R mod m
+        pn = std::move(redc(pn * _mul, m, neg_inverse_of_m, deg_m + 1)); // O(M(deg m))
+        // pn R^i R mod m
+        result = std::move(mod_add(result, redc(pn, m, neg_inverse_of_m, deg_m + 1), m)); // O(M(deg m))
+        _mul = std::move(redc(_mul * R2_mod_m, m, neg_inverse_of_m, deg_m + 1)); // O(M(deg m))
+        pos += deg_m + 1;
+    }
+
+    return std::move(result);
 }
