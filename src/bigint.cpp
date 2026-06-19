@@ -219,7 +219,9 @@ Integer Integer::operator/(const Integer& other) const {
     result -= mod_odd(result, d);
     const uint64_t deg_result = Integer::log2(result);
     Integer inverse_d = Integer::inverse_of(d, deg_result + 1);
-    return Integer::mod(result * inverse_d, deg_result + 1);
+    result = std::move(Integer::mod(result * inverse_d, deg_result + 1));
+    result.is_negative = this->is_negative ^ other.is_negative;
+    return std::move(result);
 }
 
 void Integer::normalize() {
