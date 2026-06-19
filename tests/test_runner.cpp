@@ -180,6 +180,67 @@ int main(int argc, char *argv[]) {
   } else if (method == "ostream_out") {
     Integer n(argv[2]);
     std::cout << n << std::endl;
+  } else if (method == "operator_mul") {
+    Integer n1(argv[2]);
+    Integer n2(argv[3]);
+    Integer result = n1 * n2;
+    std::cout << result << std::endl;
+  } else if (method == "operator_div") {
+    Integer n1(argv[2]);
+    Integer n2(argv[3]);
+    try {
+      Integer result = n1 / n2;
+      std::cout << result << std::endl;
+    } catch (const std::invalid_argument &e) {
+      std::cout << "ERROR: " << e.what() << std::endl;
+    }
+  } else if (method == "log2") {
+    Integer n(argv[2]);
+    std::cout << Integer::log2(n) << std::endl;
+  } else if (method == "msb") {
+    Integer n(argv[2]);
+    std::cout << Integer::MSB(n) << std::endl;
+  } else if (method == "lsb") {
+    Integer n(argv[2]);
+    std::cout << Integer::LSB(n) << std::endl;
+  } else if (method == "mod") {
+    Integer n(argv[2]);
+    uint64_t l = std::stoull(argv[3]);
+    Integer result = Integer::mod(n, l);
+    std::cout << result << std::endl;
+  } else if (method == "inverse_of") {
+    Integer n(argv[2]);
+    uint64_t l = std::stoull(argv[3]);
+    Integer result = Integer::inverse_of(n, l);
+    std::cout << result << std::endl;
+  } else if (method == "reverse") {
+    Integer n(argv[2]);
+    uint64_t l = std::stoull(argv[3]);
+    Integer result = Integer::reverse(n, l);
+    std::cout << result << std::endl;
+  } else if (method == "operator_subscript") {
+    Integer n(argv[2]);
+    uint64_t first = std::stoull(argv[3]);
+    uint64_t second = std::stoull(argv[4]);
+    Integer result = n[{first, second}];
+    std::cout << result << std::endl;
+  } else if (method == "istream_in") {
+    std::string input_str = argv[2];
+    std::istringstream iss(input_str);
+    Integer n;
+    iss >> n;
+    std::cout << n << std::endl;
+  } else if (method == "mod_add") {
+    Integer a(argv[2]);
+    Integer b(argv[3]);
+    Integer m(argv[4]);
+    Integer result = mod_add(a, b, m);
+    std::cout << result << std::endl;
+  } else if (method == "mod_odd") {
+    Integer n(argv[2]);
+    Integer m(argv[3]);
+    Integer result = mod_odd(n, m);
+    std::cout << result << std::endl;
   } else {
     std::cerr << "Unknown method: " << method << std::endl;
     return 1;

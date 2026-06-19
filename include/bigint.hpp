@@ -16,7 +16,8 @@ public:
   Integer();
   Integer(const uint64_t, const bool = false);
   Integer(const std::vector<uint64_t>&);
-  Integer(const Integer&, const bool b = false);
+  Integer(const Integer&) = default;
+  Integer(const Integer&, const bool);
   Integer(Integer&&);
   Integer(Integer&&, const bool);
   Integer(const std::string&);
@@ -287,6 +288,8 @@ public:
    * @note 시간 복잡도: O(n), n은 가져올 비트의 개수
    */
   Integer operator[](std::pair<uint64_t, uint64_t> p) const;
+
+  Integer& operator=(const std::string& str);
 };
 
 std::ostream& operator<<(std::ostream&, const Integer &);

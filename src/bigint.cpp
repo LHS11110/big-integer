@@ -736,12 +736,17 @@ Integer Integer::operator[](std::pair<uint64_t, uint64_t> p) const {
 
     Integer result;
     result.array.resize(q2 - q1 + 1, 0); // O(q2 - q1)
-    for (size_t i = q1; i <= q2; i++) // O(q2 - q1)
-        result.array[i - q1] = array[i];
+    for (size_t i = 0; i < std::min(q2 - q1 + 1, array.size() - q1); i++) // O(q2 - q1)
+        result.array[i] = array[i + q1];
     result.array[q2 - q1] &= ((1ULL << r2) + ~0ULL);
     result >>= r1; // O(q2 - q1)
     result.normalize(); // O(q2 - q1)
     return std::move(result);
+}
+
+Integer& Integer::operator=(const std::string& str) {
+    *this = std::move(Integer(str));
+    return *this;
 }
 
 std::ostream& operator<<(std::ostream& cout, const Integer &num) {
