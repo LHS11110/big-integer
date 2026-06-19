@@ -241,6 +241,15 @@ int main(int argc, char *argv[]) {
     Integer m(argv[3]);
     Integer result = mod_odd(n, m);
     std::cout << result << std::endl;
+  } else if (method == "operator_mod") {
+    Integer n1(argv[2]);
+    Integer n2(argv[3]);
+    try {
+      Integer result = n1 % n2;
+      std::cout << result << std::endl;
+    } catch (const std::invalid_argument &e) {
+      std::cout << "ERROR: " << e.what() << std::endl;
+    }
   } else {
     std::cerr << "Unknown method: " << method << std::endl;
     return 1;

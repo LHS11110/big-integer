@@ -563,6 +563,124 @@ class TestBigIntPublicAPI(unittest.TestCase):
             self.assertEqual(parse_cpp_output(out), q)
 
     # ═══════════════════════════════════════════════════════════
+    #  나머지 연산자 (Modulo Operator %)
+    # ═══════════════════════════════════════════════════════════
+
+    def test_operator_mod(self):
+        """operator%(rhs) — 나머지 (양수 % 양수)"""
+        for _ in range(ITER):
+            len_a = random.randint(100, 200)
+            len_b = random.randint(50, 100)
+            a = generate_random_digits(len_a)
+            b = generate_random_digits(len_b)
+            out = run_cpp("operator_mod", str(a), str(b))
+            expected = a % b
+            self.assertEqual(parse_cpp_output(out), expected)
+
+    def test_operator_mod_same_magnitude(self):
+        """동일 자릿수의 나머지"""
+        for _ in range(ITER):
+            length = random.randint(100, 200)
+            a = generate_random_digits(length)
+            b = generate_random_digits(length)
+            if b == 0:
+                b = 1
+            out = run_cpp("operator_mod", str(a), str(b))
+            expected = a % b
+            self.assertEqual(parse_cpp_output(out), expected)
+
+    def test_operator_mod_smaller_dividend(self):
+        """피제수 < 제수 → 나머지 = 피제수"""
+        for _ in range(ITER):
+            len_a = random.randint(100, 150)
+            len_b = random.randint(160, 200)
+            a = generate_random_digits(len_a)
+            b = generate_random_digits(len_b)
+            out = run_cpp("operator_mod", str(a), str(b))
+            self.assertEqual(parse_cpp_output(out), a)
+
+    def test_operator_mod_by_zero(self):
+        """0으로 나머지 → ERROR"""
+        len_a = random.randint(100, 200)
+        a = generate_random_digits(len_a)
+        out = run_cpp("operator_mod", str(a), "0")
+        self.assertTrue(out.startswith("ERROR"))
+
+    def test_operator_mod_signed(self):
+        """operator%(rhs) — 부호 있는 나머지 (모든 부호 조합, Python semantics)"""
+        for _ in range(ITER):
+            len_a = random.randint(100, 200)
+            len_b = random.randint(50, 100)
+            a_abs = generate_random_digits(len_a)
+            b_abs = generate_random_digits(len_b)
+
+            # (+a) % (+b)
+            out = run_cpp("operator_mod", str(a_abs), str(b_abs))
+            expected = a_abs % b_abs
+            self.assertEqual(parse_cpp_output(out), expected)
+
+            # (+a) % (-b)
+            out = run_cpp("operator_mod", str(a_abs), str(-b_abs))
+            expected = a_abs % (-b_abs)
+            self.assertEqual(parse_cpp_output(out), expected)
+
+            # (-a) % (+b)
+            out = run_cpp("operator_mod", str(-a_abs), str(b_abs))
+            expected = (-a_abs) % b_abs
+            self.assertEqual(parse_cpp_output(out), expected)
+
+            # (-a) % (-b)
+            out = run_cpp("operator_mod", str(-a_abs), str(-b_abs))
+            expected = (-a_abs) % (-b_abs)
+            self.assertEqual(parse_cpp_output(out), expected)
+
+    def test_operator_mod_exact_division(self):
+        """나머지가 0인 경우 (a = q * b)"""
+        for _ in range(ITER):
+            len_q = random.randint(50, 100)
+            len_b = random.randint(50, 100)
+            q = generate_random_digits(len_q)
+            b = generate_random_digits(len_b)
+            a = q * b  # 정확히 나누어 떨어짐
+            out = run_cpp("operator_mod", str(a), str(b))
+            self.assertEqual(parse_cpp_output(out), 0)
+
+    def test_operator_mod_self(self):
+        """a % a == 0"""
+        for _ in range(ITER):
+            len_a = random.randint(100, 200)
+            a = generate_random_digits(len_a)
+            out = run_cpp("operator_mod", str(a), str(a))
+            self.assertEqual(parse_cpp_output(out), 0)
+
+    def test_operator_mod_one(self):
+        """a % 1 == 0"""
+        for _ in range(ITER):
+            len_a = random.randint(100, 200)
+            a = generate_random_signed(len_a)
+            out = run_cpp("operator_mod", str(a), "1")
+            self.assertEqual(parse_cpp_output(out), 0)
+
+    def test_div_mod_consistency(self):
+        """(a / b) * b + (a % b) == a (모든 부호 조합)"""
+        for _ in range(ITER):
+            len_a = random.randint(100, 200)
+            len_b = random.randint(50, 100)
+            a = generate_random_signed(len_a)
+            b = generate_random_signed(len_b)
+
+            out_div = run_cpp("operator_div", str(a), str(b))
+            q = parse_cpp_output(out_div)
+
+            out_mod = run_cpp("operator_mod", str(a), str(b))
+            r = parse_cpp_output(out_mod)
+
+            # q * b + r == a 가 성립해야 함
+            self.assertEqual(q * b + r, a,
+                             f"Failed: ({a}) / ({b}) = {q}, ({a}) % ({b}) = {r}, "
+                             f"q*b+r = {q * b + r} != {a}")
+
+    # ═══════════════════════════════════════════════════════════
     #  비교 연산자 (Comparison Operators)
     # ═══════════════════════════════════════════════════════════
 
